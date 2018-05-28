@@ -1,0 +1,400 @@
+package MailServer;
+
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import javax.jws.WebService;
+import javax.jws.WebMethod;
+import javax.jws.WebParam;
+import javax.ejb.Stateless;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+
+@WebService(serviceName = "MailServer")
+@Stateless()
+public class MailServer {
+
+    Connection c;
+    Statement s;
+    ResultSet rs; 
+    public boolean connectDb()
+    {
+        try
+        {
+            String jdbc="com.mysql.jdbc.Driver";
+            String url="jdbc:mysql://localhost:3306/mailserver";
+            Class.forName(jdbc);
+            c=DriverManager.getConnection(url,"root","");
+            s=c.createStatement();
+            return true;
+        }
+        catch(Exception e)
+        {
+            return false;
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "checkUser")
+    public String checkUser(@WebParam(name = "a") String a) {
+        //TODO write your implementation code here:
+       try
+       {
+           if( connectDb())
+           {
+                rs=s.executeQuery("select * from user where uname='"+a+"'");
+                if(rs.next())
+                    return"invalid";
+                return "valid";
+           }
+           else
+               return "main";
+       }
+       catch(Exception e)
+       {
+           return e+"";
+       }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "addUser")
+    public String addUser(@WebParam(name = "a") String a, @WebParam(name = "b") String b, @WebParam(name = "c") String c, @WebParam(name = "d") String d) {
+        //TODO write your implementation code here:
+       try
+       {    
+           if(connectDb())
+           {
+               s.executeUpdate("insert into user values('"+c+"','"+a+"','"+b+"','"+d+"')");
+               return "sucess";   
+           }
+           else
+                return "main";
+        }
+        catch(Exception e)
+        {
+            return e+"";
+        }    
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "findUser")
+    public String findUser(@WebParam(name = "a") String a, @WebParam(name = "b") String b) {
+        //TODO write your implementation code here:
+        try
+       {
+           if( connectDb())
+           {
+                rs=s.executeQuery("select * from user where uname='"+a+"' and password='"+b+"'");
+                if(rs.next())
+                    return"valid";
+                return "invalid";
+           }
+           else
+               return "main";
+       }
+       catch(Exception e)
+       {
+           return e+"";
+       }
+       
+    }
+
+   
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "getInbox")
+    public String[] getInbox(@WebParam(name = "user") String user) 
+    {
+       
+        try
+        {
+            String[] v;
+            connectDb();
+            int i=0;
+            String sql="select * from mail where mto='"+user+"'";
+            rs=s.executeQuery(sql);
+            while(rs.next()) 
+              i++;
+            rs=s.executeQuery(sql);
+            v=new String[i];
+            int k=0;
+            while(rs.next())
+            {
+              v[k]=rs.getString("mailid")+"-"+rs.getString("mfrom")+"-"+rs.getString("subject")+"-"+rs.getString("body")+"-"+rs.getString("date")+"-"
+                        +rs.getString("attav");
+              k++;
+            }
+               
+            return v;
+            
+           
+        }
+        catch(Exception e)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "sendItem")
+    public String[] sendItem(@WebParam(name = "user") String user) {
+        //TODO write your implementation code here:
+        try
+        {
+            String[] v;
+            connectDb();
+            int i=0;
+            String sql="select * from mail where mfrom='"+user+"'";
+            rs=s.executeQuery(sql);
+            while(rs.next()) 
+              i++;
+            rs=s.executeQuery(sql);
+            v=new String[i];
+            int k=0;
+            while(rs.next())
+            {
+              v[k]=rs.getString("mailid")+"-"+rs.getString("mto")+"-"+rs.getString("subject")+"-"+rs.getString("body")+"-"+rs.getString("date")+"-"
+                        +rs.getString("attav");
+              k++;
+            }
+               
+            return v;
+            
+           
+        }
+        catch(Exception e)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "setDraft")
+    public String setDraft(@WebParam(name = "user") String user, @WebParam(name = "subject") String subject, @WebParam(name = "body") String body, @WebParam(name = "date") String date, @WebParam(name = "atav") String atav, @WebParam(name = "attachment") String attachment) {
+        //TODO write your implementation code here:
+        String ren;
+        try
+        {
+            connectDb();
+            String sql;
+            sql="insert into draft (muser,subject,body,date,atav,attachment) values ('"+user+"','"+subject+"','"+body+"','"+date+"','"+atav+"','"
+                    +attachment+"')";
+            s.executeUpdate(sql);
+            return "updated";
+                    
+        }
+        catch(Exception e)
+        {
+            return e+"";
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "sendMail")
+    public String sendMail(@WebParam(name = "mfrom") String mfrom, @WebParam(name = "mto") String mto, @WebParam(name = "subject") String subject, @WebParam(name = "body") String body, @WebParam(name = "date") String date, @WebParam(name = "attav") String attav, @WebParam(name = "attachment") String attachment) 
+    {
+        //TODO write your implementation code here:  
+        String ren;
+        try
+        {
+            connectDb();
+            String sql;
+            sql="insert into mail (mfrom,mto,subject,body,date,attav,attachment) values ('"+mfrom+"','"+mto+"','"+subject+"','"+body+"','"+date+"','"+attav+"','"
+                    +attachment+"')";
+            s.executeUpdate(sql);
+            return "updated";
+                    
+        }
+        catch(Exception e)
+        {
+            return e+"";
+        }
+    
+    
+    
+    
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "getCount")
+    public String getCount(@WebParam(name = "a") String a) {
+        //TODO write your implementation code here:
+       
+        try
+        {
+            String[] v;
+            connectDb();
+            int i=0;
+            String sql="select * from mail where mto='"+a+"'";
+            rs=s.executeQuery(sql);
+            while(rs.next()) 
+              i++;
+            return i+"";
+        }
+        catch(Exception e)
+        {
+            return 0+"";
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "getMailByid")
+    public String getMailByid(@WebParam(name = "a") String a) {
+        //TODO write your implementation code here:
+        try
+        {
+            connectDb();
+            byte []b;
+            int i=0;
+            String v="";
+            String sql="select * from mail where mailid='"+a+"'";
+            rs=s.executeQuery(sql);
+            while(rs.next())
+            {
+                v=rs.getString("mto")+"-"+rs.getString("subject")+"-"+rs.getString("body")+"-"+rs.getString("date")+"-"+rs.getString("attav");
+                
+            }
+            
+            v=v.toString();
+            return v;
+        }
+        catch(Exception e)
+        {
+            return e+"";
+        }
+    }
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "getSCount")
+    public String getSCount(@WebParam(name = "a") String a) {
+        //TODO write your implementation code here:
+       
+        try
+        {
+            String[] v;
+            connectDb();
+            int i=0;
+            String sql="select * from mail where mfrom='"+a+"'";
+            rs=s.executeQuery(sql);
+            while(rs.next()) 
+              i++;
+            return i+"";
+        }
+        catch(Exception e)
+        {
+            return 0+"";
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "getDraft")
+    public String[] getDraft(@WebParam(name = "user") String user) {
+        //TODO write your implementation code here:
+       
+        String p[]=new String[10];
+        try
+        {
+            String[] v;
+            connectDb();
+            int i=0;
+            String sql="select * from draft where muser='"+user+"'";
+            rs=s.executeQuery(sql);
+            while(rs.next()) 
+              i++;
+            rs=s.executeQuery(sql);
+            v=new String[i];
+            int k=0;
+            while(rs.next())
+            {
+              v[k]=rs.getString("did")+"-"+rs.getString("muser")+"-"+rs.getString("subject")+"-"+rs.getString("body")+"-"+rs.getString("date")+"-"
+                        +rs.getString("atav");
+              k++;
+            }
+               
+            return v;
+            
+           
+        }
+        catch(Exception e)
+        {
+            p[0]=e+"";
+            return p;
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "getDCount")
+    public String getDCount(@WebParam(name = "user") String user) {
+        //TODO write your implementation code here:
+       try
+        {
+            String[] v;
+            connectDb();
+            int i=0;
+            String sql="select * from draft where muser='"+user+"'";
+            rs=s.executeQuery(sql);
+            while(rs.next()) 
+              i++;
+            return i+"";
+        }
+        catch(Exception e)
+        {
+            return 0+"";
+        }
+    }
+
+    /**
+     * Web service operation
+     */
+    @WebMethod(operationName = "getAttach")
+    public String getAttach(@WebParam(name = "user") String user) {
+        //TODO write your implementation code here:
+        try
+        {
+            String[] v;
+            connectDb();
+            int i=0;
+            String sql="select * from mail where mailid='"+user+"'";
+            rs=s.executeQuery(sql);
+            rs.next();
+            Blob b=rs.getBlob("attachment");
+           int bl=(int)b.length();
+           byte []bd=b.getBytes(1, bl-1);
+            
+            String d=new String(bd);
+            return d;
+            
+        }
+        catch(Exception e)
+        {
+            return e+"";
+        }
+    }
+    
+}
+    
